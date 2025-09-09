@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="icon" href="/icon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Geo-editores Wikimedia | Vue.js Edition</title>
+    <!-- Vue.js 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js y plugin de etiquetas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3366cc; --primary-dark: #2a52a2; --primary-light: #eaf3ff;
+            --accent: #d33; --light-gray: #f8f9fa; --medium-gray: #eaecf0;
+            --dark-gray: #54595d; --card-bg: #ffffff; --text-dark: #202122;
+            --text-light: #54595d; --border-color: #dee2e6; --green: #00af89; --orange: #f58d00;
+        }
+        html, body {
+            height: 100%;
+        }
+        body { background-color: var(--light-gray); font-family: 'Inter', sans-serif; color: var(--text-dark); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; margin: 0; }
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex-grow: 1;
+        }
+        .card { background: var(--card-bg); border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); border: 1px solid var(--border-color); }
+        .card-body { padding: 1.5rem; }
+        .card-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); }
+        .btn { font-weight: 600; padding: 0.625rem 1.25rem; border-radius: 0.5rem; transition: all 0.2s; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background-color: var(--primary-dark); transform: translateY(-1px); }
+        .btn-secondary { background: white; color: var(--dark-gray); border: 1px solid var(--border-color); }
+        .btn-secondary:hover:not(:disabled) { background-color: var(--light-gray); border-color: var(--dark-gray); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.75rem; display: inline-block; white-space: nowrap; border: 1px solid transparent; }
+        .badge-blue { background-color: #eaf3ff; color: #3366cc; border-color: #a8c7fa; }
+        .badge-green { background-color: #e6f7f3; color: #00af89; border-color: #9fded1; }
+        .badge-orange { background-color: #fff8e1; color: #f58d00; border-color: #fce2a8; }
+        .table-container { width: 100%; overflow-x: auto; }
+        th { background: var(--light-gray); color: var(--text-dark); position: sticky; top: 0; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1px solid var(--border-color); z-index: 10; padding: 0.75rem 1rem; text-align: left; }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.875rem; white-space: nowrap; color: var(--text-light); }
+        tr:last-child td { border-bottom: none; }
+        .filter-input { background: white; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.625rem 1rem; color: var(--text-dark); width: 100%; transition: all 0.2s; }
+        .filter-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(51, 102, 204, 0.2); }
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="app" v-cloak>
+        <header class="bg-white py-4 border-b border-border-color sticky top-0 z-20">
+            <div class="container mx-auto px-4 max-w-7xl flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="/logo.png" alt="Logo Wikimedia Chile" class="h-10 w-auto">
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-800">Visualizador Geo-editores</h1>
+                        <p class="text-sm text-slate-500 hidden md:block">Un proyecto de análisis de Wikimedia Chile</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8 max-w-7xl">
+            <!-- Estado de Carga -->
+            <div v-if="isLoading" class="text-center py-10">
+                <i class="fas fa-spinner fa-spin fa-3x text-primary mb-4"></i>
+                <p class="text-lg text-slate-600">{{ statusMessage }}</p>
+            </div>
+
+            <!-- Estado Inicial o de Error (antes de cargar datos) -->
+            <div v-else-if="allData.length === 0" class="text-center py-20">
+                <div class="card max-w-lg mx-auto p-8">
+                    <img src="/wikiemdia foundation logo.webp" alt="Wikimedia Chile Logo" class="h-20 mx-auto mb-6">
+                    <h2 class="text-2xl font-bold mb-2">Bienvenido al Visualizador de Datos</h2>
+                    <p class="text-slate-600 mb-8">Para comenzar, presiona el botón para cargar y analizar los datos.</p>
+                     <p class="text-lg text-red-600 mb-6" v-if="statusMessage.startsWith('Error')">{{ statusMessage }}</p>
+                     <button @click="fetchAllDataFiles" class="btn btn-primary mx-auto" :disabled="isLoading">
+                        <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'"></i>
+                        <span>{{ isLoading ? 'Cargando...' : 'Cargar Datos' }}</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Contenido Principal (cuando los datos ya están cargados) -->
+            <div v-else class="space-y-8">
+                <!-- Panel de Estadísticas -->
+                <stats-panel :stats="stats"></stats-panel>
+                <!-- Panel de Filtros -->
+                <filters-panel :filters="filters" @apply="applyFilters" @clear="clearFilters" @export="exportData"></filters-panel>
+
+                <!-- Visualizaciones -->
+                <div v-if="filteredData.length > 0" class="space-y-8">
+                    <!-- NUEVO: Gráfico de Líneas -->
+                    <editors-over-time-chart :chart-data="editorsOverTimeChartData"></editors-over-time-chart>
+                    
+                    <activity-chart :chart-data="activityChartData"></activity-chart>
+                    <results-table :headers="headers" :data="paginatedData" :current-page="currentPage" :total-pages="totalPages" @page-changed="changePage"></results-table>
+                </div>
+                <div v-if="filteredData.length === 0" class="card text-center py-12">
+                     <i class="fas fa-search fa-2x text-slate-400 mb-4"></i>
+                      <p class="text-slate-600">No se encontraron resultados con los filtros aplicados.</p>
+                </div>
+            </div>
+        </main>
+        
+        <!-- NUEVO: Footer -->
+        <footer class="bg-white border-t border-border-color mt-12 py-8">
+            <div class="container mx-auto px-4 max-w-7xl text-center text-slate-600">
+                <div class="flex justify-center items-center gap-6 mb-4">
+                    <a href="https://wikimedia.cl/" target="_blank" rel="noopener noreferrer">
+                        <img src="/wikiemdia foundation logo.webp" alt="Logo Wikimedia Chile" class="h-12 w-auto">
+                    </a>
+                    <a href="https://www.wikidata.org/" target="_blank" rel="noopener noreferrer">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/ff/Wikidata-logo.svg" alt="Logo Wikidata" class="h-8 w-auto">
+                    </a>
+                </div>
+                <p class="text-sm">
+                    Desarrollado por la organización Wikimedia Chile.
+                    <br>
+                    Los datos son obtenidos de conjuntos de datos públicos de Wikimedia Analytics.
+                </p>
+                <p class="text-xs mt-4 text-slate-500">
+                    © {{ currentYear }} Wikimedia Chile. Todos los derechos reservados.
+                </p>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module">
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // Estado Reactivo
+                const allData = ref([]);
+                const filteredData = ref([]);
+                const headers = ref([]);
+                const isLoading = ref(false);
+                const statusMessage = ref('');
+                const currentPage = ref(1);
+                const ROWS_PER_PAGE = 20;
+
+                const filters = reactive({ 
+                    file: '', 
+                    year: 'all',
+                    wiki: [], 
+                    country: [], 
+                    options: { file: [], year: [], wiki: [], country: [] } 
+                });
+
+                // --- Computed Properties ---
+                const currentYear = computed(() => new Date().getFullYear());
+
+                const stats = computed(() => {
+                    const data = allData.value;
+                    if (data.length === 0) return { totalRecords: '-', totalWikis: '-', totalCountries: '-', dateRange: '-' };
+                    const months = [...new Set(data.map(item => item.month))].sort();
+                    return {
+                        totalRecords: data.length.toLocaleString('es-CL'),
+                        totalWikis: [...new Set(data.map(item => item.wiki_db))].length.toLocaleString('es-CL'),
+                        totalCountries: [...new Set(data.map(item => item.country))].length.toLocaleString('es-CL'),
+                        dateRange: `${months[0]} a ${months[months.length - 1]}`
+                    };
+                });
+
+                const totalPages = computed(() => Math.ceil(filteredData.value.length / ROWS_PER_PAGE) || 1);
+
+                const paginatedData = computed(() => {
+                    const start = (currentPage.value - 1) * ROWS_PER_PAGE;
+                    return filteredData.value.slice(start, start + ROWS_PER_PAGE);
+                });
+                
+                const activityChartData = computed(() => {
+                    if (filteredData.value.length === 0) return null;
+                    const counts = filteredData.value.reduce((acc, row) => {
+                        const level = row.activity_level; if (level) acc[level] = (acc[level] || 0) + 1; return acc;
+                    }, {});
+                    const sortedLevels = Object.keys(counts).sort((a, b) => parseInt(a) - parseInt(b));
+                    return { labels: sortedLevels, data: sortedLevels.map(level => counts[level]) };
+                });
+
+                const editorsOverTimeChartData = computed(() => {
+                    if (filteredData.value.length === 0) return null;
+
+                    const dataByMonth = {};
+                    filteredData.value.forEach(row => {
+                        const month = row.month;
+                        const level = row.activity_level;
+                        if (!month || !level) return;
+
+                        dataByMonth[month] = dataByMonth[month] || {};
+                        let category = null;
+
+                        if (level.includes('1-4')) category = '1 to 4';
+                        else if (level.includes('5-') || level.includes('25-')) category = '5 to 99';
+                        else if (level.includes('100')) category = '100 or more';
+                        
+                        if (category) {
+                            dataByMonth[month][category] = (dataByMonth[month][category] || 0) + 1;
+                        }
+                    });
+
+                    const sortedMonths = Object.keys(dataByMonth).sort();
+                    if (sortedMonths.length === 0) return null;
+
+                    const datasets = {
+                        '1 to 4': { label: '1 a 4 ediciones', data: [], borderColor: '#3366cc', backgroundColor: '#3366cc', tension: 0.2, pointRadius: 4, pointHoverRadius: 6 },
+                        '5 to 99': { label: '5 a 99 ediciones', data: [], borderColor: '#f58d00', backgroundColor: '#f58d00', tension: 0.2, pointRadius: 4, pointHoverRadius: 6 },
+                        '100 or more': { label: '100 o más ediciones', data: [], borderColor: '#00af89', backgroundColor: '#00af89', tension: 0.2, pointRadius: 4, pointHoverRadius: 6 }
+                    };
+
+                    sortedMonths.forEach(month => {
+                        const monthData = dataByMonth[month];
+                        datasets['1 to 4'].data.push(monthData['1 to 4'] || 0);
+                        datasets['5 to 99'].data.push(monthData['5 to 99'] || 0);
+                        datasets['100 or more'].data.push(monthData['100 or more'] || 0);
+                    });
+
+                    return {
+                        labels: sortedMonths,
+                        datasets: Object.values(datasets)
+                    };
+                });
+
+                // --- Métodos ---
+                const fetchAllDataFiles = async () => {
+                    isLoading.value = true;
+                    statusMessage.value = 'Obteniendo lista de archivos...';
+                    allData.value = []; headers.value = [];
+                    try {
+                        const PROXY_URL = 'https://corsproxy.io/?';
+                        const DATA_URL = 'https://analytics.wikimedia.org/published/datasets/geoeditors_monthly/';
+                        const response = await fetch(`${PROXY_URL}${encodeURIComponent(DATA_URL)}`);
+                        if (!response.ok) throw new Error(`Error de red: ${response.status}`);
+                        const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                        const fileLinks = Array.from(doc.querySelectorAll('a[href$=".tsv"]'));
+                        if (fileLinks.length === 0) throw new Error("No se encontraron archivos .tsv");
+                        
+                        const fileList = fileLinks.map(link => ({ name: link.getAttribute('href').split('/').pop(), url: new URL(link.getAttribute('href'), DATA_URL).href }));
+                        let loadedCount = 0; const BATCH_SIZE = 5;
+
+                        for (let i = 0; i < fileList.length; i += BATCH_SIZE) {
+                            const batch = fileList.slice(i, i + BATCH_SIZE);
+                            const promises = batch.map(file => fetch(`${PROXY_URL}${encodeURIComponent(file.url)}`).then(res => res.text()).then(text => ({text, name: file.name})));
+                            const results = await Promise.all(promises);
+                            results.forEach(res => { if(res.text) allData.value.push(...parseTSV(res.text, res.name)); });
+                            loadedCount += batch.length;
+                            statusMessage.value = `Procesando ${loadedCount} de ${fileList.length} archivos...`;
+                        }
+                        populateFilters(); applyFilters();
+                    } catch (error) {
+                        console.error(error); statusMessage.value = `Error: ${error.message}`;
+                    } finally { isLoading.value = false; }
+                };
+
+                const parseTSV = (text, fileName) => {
+                    const lines = text.trim().split('\n');
+                    if (lines.length < 2) return [];
+                    if (headers.value.length === 0) headers.value = lines[0].split('\t').map(h => h.trim());
+                    return lines.slice(1).map(line => {
+                        const values = line.split('\t'), row = {};
+                        headers.value.forEach((h, i) => row[h] = values[i] ? values[i].trim() : '');
+                        row.__fileName = fileName; return row;
+                    });
+                };
+                
+                const populateFilters = () => {
+                    const data = allData.value;
+                    filters.options.file = [...new Set(data.map(d => d.__fileName))].sort();
+                    filters.options.wiki = [...new Set(data.map(d => d.wiki_db))].sort();
+                    filters.options.country = [...new Set(data.map(d => d.country))].sort();
+                    const years = [...new Set(data.map(d => d.month.substring(0, 4)))].sort((a, b) => b - a);
+                    filters.options.year = ['all', ...years];
+                };
+
+                const applyFilters = (newFilters = filters) => {
+                    let data = allData.value;
+                    if (newFilters.file) data = data.filter(d => d.__fileName === newFilters.file);
+                    if (newFilters.year && newFilters.year !== 'all') {
+                        data = data.filter(d => d.month.startsWith(newFilters.year));
+                    }
+                    if (newFilters.wiki.length) data = data.filter(d => newFilters.wiki.includes(d.wiki_db));
+                    if (newFilters.country.length) data = data.filter(d => newFilters.country.includes(d.country));
+                    filteredData.value = data; currentPage.value = 1;
+                };
+
+                const clearFilters = () => {
+                    filters.file = ''; 
+                    filters.year = 'all';
+                    filters.wiki = []; 
+                    filters.country = []; 
+                    applyFilters();
+                };
+                
+                const changePage = (page) => { if (page > 0 && page <= totalPages.value) currentPage.value = page; };
+                
+                const exportData = () => {
+                    if (filteredData.value.length === 0) return;
+                    const headerRow = headers.value.map(h => headerTranslations[h] || h).join(',');
+                    const dataRows = filteredData.value.map(row => headers.value.map(header => `"${String(row[header] || '').replace(/"/g, '""')}"`).join(','));
+                    const csvContent = [headerRow, ...dataRows].join('\n');
+                    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'datos_geoeditores_wikimedia_chile.csv';
+                    link.click(); URL.revokeObjectURL(link.href);
+                };
+                const headerTranslations = { 'month': 'Mes', 'wiki_db': 'Proyecto Wiki', 'country': 'País', 'user_id': 'ID Usuario', 'user_name': 'Usuario', 'user_edit_count': 'Ediciones', 'user_registration': 'Registro', 'activity_level': 'Nivel Actividad' };
+
+                return { allData, filteredData, headers, isLoading, statusMessage, currentPage, stats, filters, totalPages, paginatedData, activityChartData, editorsOverTimeChartData, fetchAllDataFiles, applyFilters, clearFilters, changePage, exportData, headerTranslations, currentYear };
+            }
+        });
+
+        // --- Componentes ---
+        app.component('stats-panel', {
+            props: ['stats'],
+            template: `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-light text-primary text-xl"><i class="fas fa-database"></i></div><div><div class="text-sm text-slate-500">Total Registros</div><div class="text-2xl font-bold">{{ stats.totalRecords }}</div></div></div>
+                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl"><i class="fas fa-globe"></i></div><div><div class="text-sm text-slate-500">Wikis Diferentes</div><div class="text-2xl font-bold">{{ stats.totalWikis }}</div></div></div>
+                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 text-xl"><i class="fas fa-flag"></i></div><div><div class="text-sm text-slate-500">Países Únicos</div><div class="text-2xl font-bold">{{ stats.totalCountries }}</div></div></div>
+                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-600 text-xl"><i class="fas fa-calendar-alt"></i></div><div><div class="text-sm text-slate-500">Rango de Fechas</div><div class="text-lg font-bold">{{ stats.dateRange }}</div></div></div>
+                </div>`
+        });
+
+        app.component('filters-panel', {
+            props: ['filters'],
+            emits: ['apply', 'clear', 'export'],
+            setup(props, { emit }) {
+                const localFilters = reactive(JSON.parse(JSON.stringify(props.filters)));
+                watch(() => props.filters, (newFilters) => {
+                    Object.assign(localFilters, newFilters);
+                }, { deep: true });
+                return { localFilters, emit };
+            },
+            template: `
+                <div class="card">
+                    <div class="card-body">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+                            <div><label class="font-medium text-sm mb-2 block">Año</label>
+                                <select v-model="localFilters.year" class="filter-input">
+                                    <option v-for="opt in filters.options.year" :value="opt">{{ opt === 'all' ? 'Todos' : opt }}</option>
+                                </select>
+                            </div>
+                            <div><label class="font-medium text-sm mb-2 block">Archivo</label>
+                                <select v-model="localFilters.file" class="filter-input">
+                                    <option value="">Todos</option>
+                                    <option v-for="opt in filters.options.file" :value="opt">{{ opt }}</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-1"><label class="font-medium text-sm mb-2 block">Proyecto (Wiki)</label><select v-model="localFilters.wiki" multiple class="filter-input h-32"><option v-for="opt in filters.options.wiki" :value="opt">{{ opt }}</option></select></div>
+                            <div class="md:col-span-1"><label class="font-medium text-sm mb-2 block">País</label><select v-model="localFilters.country" multiple class="filter-input h-32"><option v-for="opt in filters.options.country" :value="opt">{{ opt }}</option></select></div>
+                            <div class="md:col-span-1 flex flex-col justify-end gap-3">
+                                <button @click="emit('apply', localFilters)" class="btn btn-primary w-full"><i class="fas fa-check"></i>Aplicar</button>
+                                <div class="flex gap-3">
+                                    <button @click="emit('clear')" class="btn btn-secondary w-full"><i class="fas fa-times"></i>Limpiar</button>
+                                    <button @click="emit('export')" class="btn btn-secondary w-full"><i class="fas fa-file-export"></i>Exportar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
+        });
+
+        app.component('editors-over-time-chart', {
+            props: ['chartData'],
+            setup(props) {
+                const chartCanvas = ref(null);
+                let chartInstance = null;
+                const renderChart = () => {
+                    if (chartInstance) chartInstance.destroy();
+                    if (!props.chartData || !chartCanvas.value) return;
+                    const ctx = chartCanvas.value.getContext('2d');
+                    chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: props.chartData.labels,
+                            datasets: props.chartData.datasets
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' },
+                                tooltip: { 
+                                    backgroundColor: '#202122',
+                                    callbacks: { label: c => `${c.dataset.label}: ${c.raw.toLocaleString('es-CL')} editores` }
+                                },
+                                datalabels: { display: false }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: '#eaecf0' }, ticks: { color: '#54595d' } },
+                                x: { grid: { display: false }, ticks: { color: '#54595d', maxRotation: 45, minRotation: 45 } }
+                            },
+                            interaction: { intersect: false, mode: 'index' }
+                        }
+                    });
+                };
+                onMounted(renderChart);
+                watch(() => props.chartData, renderChart);
+                return { chartCanvas };
+            },
+            template: `<div class="card"><div class="card-header"><h2 class="text-xl font-bold">Editores por Nivel de Actividad a lo Largo del Tiempo</h2></div><div class="card-body"><div class="h-96"><canvas ref="chartCanvas"></canvas></div></div></div>`
+        });
+
+        app.component('activity-chart', {
+            props: ['chartData'],
+            setup(props) {
+                const chartCanvas = ref(null); let chartInstance = null;
+                const renderChart = () => {
+                    if (chartInstance) chartInstance.destroy();
+                    if (!props.chartData || !chartCanvas.value) return;
+                    const ctx = chartCanvas.value.getContext('2d');
+                    const chartColors = ['#3366cc', '#00af89', '#f58d00', '#ff5722', '#d33', '#54595d'];
+                    chartInstance = new Chart(ctx, {
+                        type: 'bar', data: { labels: props.chartData.labels, datasets: [{ data: props.chartData.data, backgroundColor: chartColors, borderRadius: 4 }] },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#202122', callbacks: { label: c => `Editores: ${c.raw.toLocaleString('es-CL')}` }}, datalabels: { anchor: 'end', align: 'top', formatter: (v) => v > 0 ? v.toLocaleString('es-CL') : '', color: '#54595d', font: { weight: '600' } } },
+                            scales: { y: { beginAtZero: true, grid: { color: '#eaecf0' }, ticks: { color: '#54595d', callback: v => (v >= 1000) ? `${v/1000}k` : v }, suggestedMax: Math.max(...props.chartData.data) * 1.15 }, x: { grid: { display: false }, ticks: { color: '#54595d' } } }
+                        }
+                    });
+                };
+                onMounted(renderChart); watch(() => props.chartData, renderChart);
+                return { chartCanvas };
+            },
+            template: `<div class="card"><div class="card-header"><h2 class="text-xl font-bold">Total Editores por Nivel de Actividad</h2></div><div class="card-body"><div class="h-80"><canvas ref="chartCanvas"></canvas></div></div></div>`
+        });
+
+        app.component('results-table', {
+            props: ['headers', 'data', 'currentPage', 'totalPages', 'headerTranslations'],
+            emits: ['page-changed'],
+            setup(props) {
+                const getBadgeClass = (level) => {
+                    if (!level) return 'badge-gray'; if (level.includes('1-4')) return 'badge-blue'; if (level.includes('5-')) return 'badge-green'; if (level.includes('100')) return 'badge-orange'; return 'badge-gray';
+                };
+                return { getBadgeClass };
+            },
+            template: `
+                <div class="card">
+                    <div class="card-header flex justify-between items-center"><h2 class="text-xl font-bold">Resultados</h2><span class="font-semibold text-primary">{{ data.length }} registros en esta página</span></div>
+                    <div class="card-body">
+                        <div class="table-container"><table class="w-full">
+                            <thead><tr><th v-for="h in headers">{{ $parent.headerTranslations[h] || h }}</th></tr></thead>
+                            <tbody><tr v-for="row in data"><td v-for="header in headers">
+                                <span v-if="header === 'activity_level'" class="badge" :class="getBadgeClass(row[header])">{{ row[header] }}</span>
+                                <span v-else>{{ row[header] }}</span>
+                            </td></tr></tbody>
+                        </table></div>
+                         <div class="mt-4 flex justify-between items-center">
+                            <div class="text-sm text-slate-600">Página {{ currentPage }} de {{ totalPages }}</div>
+                            <div class="flex gap-2">
+                                <button @click="$emit('page-changed', currentPage - 1)" :disabled="currentPage === 1" class="btn btn-secondary !py-1 !px-3"><i class="fas fa-chevron-left"></i></button>
+                                <button @click="$emit('page-changed', currentPage + 1)" :disabled="currentPage === totalPages" class="btn btn-secondary !py-1 !px-3"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
+
