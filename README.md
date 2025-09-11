@@ -1,74 +1,94 @@
-Visualizador de Datos Geo-editores de Wikimedia
-Una aplicación web interactiva y de una sola página (SPA) construida con Vue.js para cargar, visualizar, filtrar y analizar los datos públicos del directorio de análisis de geo-editores de Wikimedia.
+Visualizador de Datos Geo-editores de Wikimedia (Full-Stack)
+Una aplicación web interactiva con una arquitectura cliente-servidor para cargar, visualizar, filtrar y analizar los datos públicos del directorio de análisis de geo-editores de Wikimedia.
 
 Descripción del Proyecto
-Este visualizador es una herramienta diseñada para facilitar el análisis de los datos mensuales sobre los editores de los proyectos Wikimedia, clasificados por ubicación geográfica. La aplicación carga dinámicamente todos los archivos de datos disponibles desde la fuente oficial, los procesa y los presenta en una interfaz limpia e intuitiva, permitiendo al usuario explorar la información a través de filtros y múltiples gráficos interactivos.
+Este visualizador es una herramienta diseñada para facilitar el análisis de los datos mensuales sobre los editores de los proyectos Wikimedia, clasificados por ubicación geográfica.
+
+La aplicación utiliza un backend de Node.js para obtener los datos directamente desde la fuente oficial de Wikimedia Analytics, eliminando la necesidad de proxies externos y garantizando una conexión estable. El frontend, construido con Vue.js 3, consume estos datos y los presenta en una interfaz limpia e intuitiva, permitiendo al usuario explorar la información a través de filtros y múltiples gráficos interactivos.
+
+Arquitectura del Proyecto
+Backend (server.js): Un servidor Node.js con Express que actúa como un intermediario robusto. Se encarga de:
+
+Comunicarse directamente con la API de Wikimedia Analytics.
+
+Procesar la lista de archivos disponibles.
+
+Servir los datos al frontend a través de una API REST local.
+
+Frontend (public/index.html): Una Single-Page Application (SPA) construida con Vue.js 3 que se ejecuta en el navegador del usuario. Se encarga de toda la presentación, interactividad y visualización de datos.
 
 Características Principales
-Carga Dinámica de Datos: Se conecta en tiempo real al directorio de Wikimedia Analytics para obtener siempre la lista más actualizada de archivos de datos.
+Arquitectura Cliente-Servidor Robusta: Elimina problemas de CORS y dependencias de servicios de terceros.
 
-Interfaz Reactiva con Vue.js: Construida con Vue.js 3 y la Composition API, la interfaz se actualiza automáticamente en respuesta a las acciones del usuario y los cambios en los datos.
+Interfaz Reactiva con Vue.js: Construida con Vue.js 3 y la Composition API para una interfaz fluida y un estado bien gestionado.
 
-Panel de Filtros Avanzado: Permite filtrar los datos por Año, archivo de origen, proyecto (wiki) y país. Los filtros de selección múltiple facilitan análisis complejos y cruzados.
+Panel de Filtros Avanzado: Permite filtrar datos por Año, archivo, proyecto (wiki) y país, con componentes de selección múltiple con buscador.
 
 Visualización Dual de Datos:
 
-Gráfico de Líneas (Tendencias Temporales): Un gráfico de líneas que muestra la evolución mensual de los editores por nivel de actividad. Es ideal para identificar patrones, estacionalidad y tendencias a lo largo del tiempo.
+Gráfico de Líneas: Muestra la evolución mensual de los editores para identificar tendencias.
 
-Gráfico de Barras (Resumen Agregado): Un gráfico de barras que resume el número total de editores por nivel de actividad para el período de tiempo seleccionado, ofreciendo una vista general del volumen total.
+Gráfico de Barras: Resume el volumen total de editores por nivel de actividad.
 
-Tabla de Resultados Paginada: Muestra los datos filtrados en una tabla limpia y fácil de leer, con paginación para manejar grandes volúmenes de información de manera eficiente.
+Tabla de Resultados Paginada: Maneja grandes volúmenes de datos de manera eficiente.
 
-Exportación a CSV: Permite exportar la selección de datos filtrados a un archivo .csv para su uso en otras herramientas de análisis como Excel o Google Sheets.
+Exportación a CSV: Permite exportar los datos filtrados para análisis externo.
 
-Diseño Moderno y Responsivo: La interfaz está diseñada con Tailwind CSS para ser profesional, limpia y completamente funcional en diferentes tamaños de pantalla, desde móviles hasta computadoras de escritorio.
+Diseño Moderno y Responsivo: Creado con Tailwind CSS para una experiencia de usuario óptima en cualquier dispositivo.
 
 Tecnologías Utilizadas
-Este proyecto es una aplicación de una sola página que no requiere un proceso de compilación (build). Todas las librerías se cargan a través de una CDN para simplificar su despliegue.
+Backend
+Entorno de Ejecución: Node.js
 
-Lenguaje Principal: JavaScript (ES6+)
+Framework: Express.js
 
-Framework de Frontend: Vue.js 3 (cargado a través de CDN), utilizando la API de Composición.
+Peticiones HTTP: Axios
 
-Librería de Estilos: Tailwind CSS (cargado a través de CDN).
+Web Scraping: Cheerio (para parsear la lista de archivos del HTML de Wikimedia)
 
-Librería de Gráficos: Chart.js con chartjs-plugin-datalabels.
+Frontend
+Framework: Vue.js 3 (Composition API)
 
-Librería de Iconos: Font Awesome.
+Estilos: Tailwind CSS
 
-APIs y Conexiones Externas
-API de Datos de Wikimedia Analytics:
+Gráficos: Chart.js con chartjs-plugin-datalabels
 
-Endpoint: https://analytics.wikimedia.org/published/datasets/geoeditors_monthly/
-
-Descripción: La aplicación realiza una petición fetch a esta URL para obtener el listado de todos los archivos de datos en formato .tsv. Posteriormente, realiza peticiones individuales para descargar cada uno de estos archivos.
-
-Proxy CORS:
-
-Servicio: corsproxy.io
-
-Descripción: Para evitar problemas de políticas de CORS (Cross-Origin Resource Sharing), todas las peticiones fetch se enrutan a través de este proxy.
+Iconos: Font Awesome
 
 Instalación y Uso
-Dado que es una aplicación autocontenida, no se requiere instalación ni dependencias complejas.
+Para ejecutar este proyecto en tu máquina local, sigue estos pasos:
 
-Descarga el archivo index.html.
+Prerrequisitos
+Tener instalado Node.js (que incluye el gestor de paquetes npm).
 
-Ábrelo en un navegador web moderno (como Chrome, Firefox, Edge, etc.).
+Pasos
+Clona o descarga el repositorio en tu computadora.
 
-¡Listo! La aplicación comenzará a funcionar.
+Abre una terminal en la carpeta raíz del proyecto.
 
-Importante: Se requiere una conexión a internet activa para que la aplicación pueda conectarse a la API de Wikimedia y cargar los datos.
+Instala las dependencias del servidor: Este comando leerá el archivo package.json e instalará Express, Axios, etc.
+
+npm install
+
+Inicia el servidor:
+
+npm start
+
+Si todo va bien, verás un mensaje en la consola: ¡Servidor listo! Abre tu navegador en http://localhost:3000.
+
+Abre la aplicación: Abre tu navegador web y ve a la dirección http://localhost:3000.
 
 Estructura del Código
-Todo el código de la aplicación (HTML, CSS y JavaScript) se encuentra dentro del archivo index.html.
+/
+├── public/               # Contiene todos los archivos del frontend
+│   ├── index.html        # El HTML principal con la app de Vue
+│   ├── logo.png          # Y otros assets (CSS, JS, imágenes)
+│   └── ...
+├── node_modules/         # Dependencias del backend (creado por npm)
+├── package.json          # Define el proyecto y sus dependencias
+├── package-lock.json     # Registro de versiones de las dependencias
+└── server.js             # El corazón del backend (servidor Express y lógica de la API)
 
-<style>: Contiene las variables de CSS y estilos personalizados que complementan a Tailwind CSS.
+server.js: Define las rutas de la API (/api/files, /api/file/:filename) que el frontend utiliza para obtener los datos. También sirve los archivos estáticos de la carpeta public.
 
-<div id="app">: Es el punto de montaje de la aplicación Vue.js. Todo el HTML de la interfaz se encuentra aquí, estructurado con componentes de Vue.
-
-<script type="module">: Contiene toda la lógica de la aplicación.
-
-Instancia Principal de Vue: Creada con createApp, contiene el estado reactivo (ref, reactive), las propiedades computadas (computed) y los métodos principales.
-
-Componentes de Vue: La aplicación se divide en componentes reutilizables para una mejor organización: stats-panel, filters-panel, editors-over-time-chart, activity-chart, y results-table.
+public/index.html: Contiene la aplicación Vue.js completa, dividida en componentes reutilizables (stats-panel, filters-panel, etc.) y toda la lógica de la interfaz de usuario.

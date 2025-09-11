@@ -1,0 +1,27 @@
+{
+  "name": "visualizador-geo-editores",
+  "version": "1.0.0",
+  "description": "Visualizador de Datos Geo-editores de Wikimedia\r Una aplicación web interactiva y de una sola página (SPA) construida con Vue.js para cargar, visualizar, filtrar y analizar los datos públicos del directorio de análisis de geo-editores de Wikimedia.",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jordylizana-ship-it/Visualizador-Geo-editores.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jordylizana-ship-it/Visualizador-Geo-editores/issues"
+  },
+  "homepage": "https://github.com/jordylizana-ship-it/Visualizador-Geo-editores#readme",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "cheerio": "^1.1.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}
