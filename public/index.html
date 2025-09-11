@@ -264,7 +264,7 @@ const app = createApp({
 
         const currentYear = computed(() => new Date().getFullYear());
 
-        // --- Lógica Principal (sin cambios) ---
+        // --- Lógica Principal (con cambios) ---
         const findHeaderKey = (candidates) => { const low = headers.value.map(h => h.toLowerCase()); for (const cand of candidates) { for (let i = 0; i < low.length; i++) { if (low[i].includes(cand)) return headers.value[i]; } } return null; };
         const normMonth = (raw) => { if (!raw) return ''; const s = raw.toString().trim(); const m1 = s.match(/(\d{4})[-\/](\d{1,2})/); if (m1) return `${m1[1]}-${String(m1[2]).padStart(2,'0')}`; const m2 = s.match(/(\d{4})(\d{2})/); if (m2) return `${m2[1]}-${m2[2]}`; const m3 = s.match(/(\d{4})/); return m3 ? `${m3[1]}` : s.slice(0,7); };
         const parseNumber = (val) => { if (val === null || val === undefined) return 0; const s = String(val).trim(); if (!s) return 0; const digits = s.replace(/[^\d\-]/g,''); const n = parseInt(digits, 10); return isNaN(n) ? 0 : n; };
@@ -274,7 +274,57 @@ const app = createApp({
         const totalPages = computed(() => Math.ceil(filteredData.value.length / ROWS_PER_PAGE) || 1);
         const paginatedData = computed(() => { const start = (currentPage.value - 1) * ROWS_PER_PAGE; return filteredData.value.slice(start, start + ROWS_PER_PAGE); });
         const activityChartData = computed(() => { if (!filteredData.value.length) return null; const counts = { '1-4': 0, '5-99': 0, '100+': 0 }; filteredData.value.forEach(r => { const c = r._category || '0'; const editors = Number(r._editorsCount || 0); if (c === '1-4') counts['1-4'] += editors; else if (c === '5-99') counts['5-99'] += editors; else if (c === '100+') counts['100+'] += editors; }); return { labels: ['1 a 4', '5 a 99', '100+'], data: [counts['1-4'], counts['5-99'], counts['100+']] }; });
-        const editorsOverTimeChartData = computed(() => { if (!filteredData.value.length) return null; const map = {}; filteredData.value.forEach(r => { const m = r._month || 'sin-mes'; const c = r._category || '0'; const editors = Number(r._editorsCount || 0); if (!map[m]) map[m] = { '1-4': 0, '5-99': 0, '100+': 0 }; if (c === '1-4') map[m]['1-4'] += editors; else if (c === '5-99') map[m]['5-99'] += editors; else if (c === '100+') map[m]['100+'] += editors; }); const months = Object.keys(map).sort(); if (!months.length) return null; const d1 = [], d2 = [], d3 = []; months.forEach(m => { d1.push(map[m]['1-4'] || 0); d2.push(map[m]['5-99'] || 0); d3.push(map[m]['100+'] || 0); }); const datasets = [ { label: '1 a 4 ediciones', data: d1, borderColor: '#3366cc', backgroundColor: '#3366cc', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true }, { label: '5 a 99 ediciones', data: d2, borderColor: '#f58d00', backgroundColor: '#f58d00', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true }, { label: '100 o más ediciones', data: d3, borderColor: '#00af89', backgroundColor: '#00af89', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true }, ]; return { labels: months, datasets }; });
+        
+        const editorsOverTimeChartData = computed(() => {
+            if (!filteredData.value.length) return null;
+            const map = {};
+            filteredData.value.forEach(r => {
+                const m = r._month || 'sin-mes';
+                const c = r._category || '0';
+                const editors = Number(r._editorsCount || 0);
+                if (!map[m]) map[m] = { '1-4': 0, '5-99': 0, '100+': 0 };
+                if (c === '1-4') map[m]['1-4'] += editors;
+                else if (c === '5-99') map[m]['5-99'] += editors;
+                else if (c === '100+') map[m]['100+'] += editors;
+            });
+            const months = Object.keys(map).sort();
+            if (!months.length) return null;
+
+            let chartLabels = [...months];
+            let d1 = [], d2 = [], d3 = [];
+
+            if (months.length === 1) {
+                const singleMonth = months[0];
+                // Para dibujar una línea recta, duplicamos el punto de datos y añadimos una etiqueta vacía.
+                chartLabels.push(' '); 
+                d1 = [map[singleMonth]['1-4'] || 0, map[singleMonth]['1-4'] || 0];
+                d2 = [map[singleMonth]['5-99'] || 0, map[singleMonth]['5-99'] || 0];
+                d3 = [map[singleMonth]['100+'] || 0, map[singleMonth]['100+'] || 0];
+            } else {
+                months.forEach(m => {
+                    d1.push(map[m]['1-4'] || 0);
+                    d2.push(map[m]['5-99'] || 0);
+                    d3.push(map[m]['100+'] || 0);
+                });
+            }
+            
+            const datasets = [
+                { label: '1 a 4 ediciones', data: d1, borderColor: '#3366cc', backgroundColor: '#3366cc', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true },
+                { label: '5 a 99 ediciones', data: d2, borderColor: '#f58d00', backgroundColor: '#f58d00', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true },
+                { label: '100 o más ediciones', data: d3, borderColor: '#00af89', backgroundColor: '#00af89', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true },
+            ];
+            
+            // Si solo hay un punto de datos, quitamos la tensión para que la línea sea recta y ocultamos el segundo punto.
+            if (months.length === 1) {
+                datasets.forEach(ds => {
+                    ds.tension = 0; // Línea recta
+                    ds.pointRadius = [4, 0]; // Mostrar solo el primer punto
+                });
+            }
+            
+            return { labels: chartLabels, datasets };
+        });
+
         const fetchAllDataFiles = async () => { isLoading.value = true; statusMessage.value = 'Obteniendo lista de archivos...'; allData.value = []; headers.value = []; try { const response = await fetch('/api/files'); if (!response.ok) throw new Error(`El servidor respondió con un error: ${response.statusText}`); const fileList = await response.json(); if (fileList.length === 0) throw new Error("No se encontraron archivos .tsv desde el backend."); let loadedCount = 0; const BATCH_SIZE = 5; for (let i = 0; i < fileList.length; i += BATCH_SIZE) { const batch = fileList.slice(i, i + BATCH_SIZE); const promises = batch.map(fileName => fetch(`/api/file/${fileName}`).then(res => { if (!res.ok) throw new Error(`No se pudo descargar ${fileName}`); return res.text(); }).then(text => ({ text, name: fileName })) ); const results = await Promise.all(promises); results.forEach(res => { if (res.text) allData.value.push(...parseTSV(res.text, res.name)); }); loadedCount += batch.length; statusMessage.value = `Procesando ${loadedCount} de ${fileList.length} archivos...`; } normalizeRecords(); populateFilters(); applyFilters(); if (!tutorial.ran) { setTimeout(startTutorial, 500); } } catch (error) { console.error("Error detallado:", error); statusMessage.value = `Error: ${error.message}`; } finally { isLoading.value = false; } };
         const parseTSV = (text, fileName) => { const lines = text.trim().split('\n'); if (lines.length < 2) return []; if (headers.value.length === 0) headers.value = lines[0].split('\t').map(h => h.trim()); return lines.slice(1).map(line => { const values = line.split('\t'), row = {}; headers.value.forEach((h, i) => row[h] = values[i] ? values[i].trim() : ''); row.__fileName = fileName; return row; }); };
         const normalizeRecords = () => { const monthKey = findHeaderKey(['month','mes','date','fecha']); const editsKey = findHeaderKey(['edit','edicion','edit_count','user_edit_count','editcount','ediciones']); const activityKey = findHeaderKey(['activity','activity_level','nivel','nivel_actividad','activity-level']); const editorsCountKey = findHeaderKey(['editors','editor_count','editors_count','count','editors_total','editors_total','editors_agg','editors_aggregated','editors_per_month','editor_count']); allData.value = allData.value.map(r => { const copy = { ...r }; const rawMonth = (monthKey && copy[monthKey]) ? copy[monthKey] : (copy.month || copy.date || copy.mes || ''); copy._month = normMonth(rawMonth); const rawEdits = (editsKey && copy[editsKey]) ? copy[editsKey] : (copy.user_edit_count || copy.edit_count || copy.ediciones || ''); copy._edits = parseEdits(rawEdits); const rawActivity = (activityKey && copy[activityKey]) ? copy[activityKey] : (copy.activity_level || ''); let editorsCount = 0; if (editorsCountKey && copy[editorsCountKey]) editorsCount = parseNumber(copy[editorsCountKey]); if (!editorsCount) { if (copy.user_id || copy.user_name || copy.user) editorsCount = 1; } copy._editorsCount = editorsCount; copy._category = detectCategory(rawActivity, copy._edits); return copy; }); };
@@ -342,16 +392,16 @@ app.component('filters-panel', {
     emits: ['apply', 'clear', 'export', 'openCompare'],
     setup(props, { emit }) { const localFilters = reactive(JSON.parse(JSON.stringify(props.filters))); watch(() => props.filters, (newFilters) => Object.assign(localFilters, newFilters), { deep: true }); return { localFilters, emit }; },
     template: `<div class="card"><div class="card-body">
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 items-end">
+        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 items-start">
             <!-- Filters Group -->
-            <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="md:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div><label class="font-medium text-sm mb-2 block">Año</label><select v-model="localFilters.year" class="filter-input"><option v-for="opt in filters.options.year" :value="opt">{{ opt === 'all' ? 'Todos' : opt }}</option></select></div>
                 <div><label class="font-medium text-sm mb-2 block">Archivo</label><select v-model="localFilters.file" class="filter-input"><option value="">Todos</option><option v-for="opt in filters.options.file" :value="opt">{{ opt }}</option></select></div>
                 <div><label class="font-medium text-sm mb-2 block">Proyecto (Wiki)</label><searchable-multiselect v-model="localFilters.wiki" :options="filters.options.wiki" placeholder="Seleccionar Wikis..."></searchable-multiselect></div>
                 <div><label class="font-medium text-sm mb-2 block">País</label><searchable-multiselect v-model="localFilters.country" :options="filters.options.country" placeholder="Seleccionar Países..."></searchable-multiselect></div>
             </div>
             <!-- Buttons Group -->
-            <div class="lg:col-span-1 flex flex-col gap-3">
+            <div class="md:col-span-1 lg:col-span-1 flex flex-col gap-3">
                 <div class="grid grid-cols-2 gap-3">
                     <button @click="emit('apply', localFilters)" class="btn btn-primary w-full">
                         <i class="fas fa-check mr-2"></i>Aplicar
