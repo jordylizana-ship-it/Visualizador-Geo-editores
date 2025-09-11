@@ -41,6 +41,37 @@
         .filter-input { background: white; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.625rem 1rem; color: var(--text-dark); width: 100%; transition: all 0.2s; }
         .filter-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(51, 102, 204, 0.2); }
         [v-cloak] { display: none; }
+
+        /* Estilos para el Tutorial Interactivo */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(10, 10, 20, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 999;
+        }
+        .tutorial-popover {
+            position: fixed;
+            background-color: white;
+            color: var(--text-dark);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            max-width: 380px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transición suave */
+            z-index: 1001; /* Debe estar sobre el elemento resaltado */
+        }
+        .highlighted-element {
+            z-index: 1000;
+            position: relative;
+            outline: 3px solid var(--primary);
+            outline-offset: 4px;
+            border-radius: 0.75rem; 
+            box-shadow: 0 0 25px rgba(51, 102, 204, 0.5);
+            transition: outline 0.3s ease, box-shadow 0.3s ease;
+            pointer-events: none; 
+        }
     </style>
 </head>
 <body>
@@ -63,26 +94,40 @@
                 <p class="text-lg text-slate-600">{{ statusMessage }}</p>
             </div>
 
-            <div v-else-if="allData.length === 0" class="text-center py-20">
-                <div class="card max-w-lg mx-auto p-8">
-                    <img src="/wikiemdia foundation logo.webp" alt="Wikimedia Chile Logo" class="h-20 mx-auto mb-6">
-                    <h2 class="text-2xl font-bold mb-2">Bienvenido al Visualizador de Datos</h2>
-                    <p class="text-slate-600 mb-8">Para comenzar, presiona el botón para cargar y analizar los datos.</p>
-                     <p class="text-lg text-red-600 mb-6" v-if="statusMessage.startsWith('Error')">{{ statusMessage }}</p>
-                     <button @click="fetchAllDataFiles" class="btn btn-primary mx-auto" :disabled="isLoading">
-                        <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'"></i>
-                        <span>{{ isLoading ? 'Cargando...' : 'Cargar Datos' }}</span>
-                    </button>
+            <div v-else-if="allData.length === 0" class="text-center py-10">
+                <div class="max-w-3xl mx-auto mb-12 p-8 card text-left">
+                    <h2 class="text-2xl font-bold text-primary mb-4 text-center">Analiza los Datos de Geo-Editores</h2>
+                    <p class="text-slate-600 mb-6">Esta plataforma interactiva te permite explorar datos sobre los editores de proyectos Wikimedia, viendo su distribución geográfica y nivel de actividad a lo largo del tiempo.</p>
+                    <div class="grid md:grid-cols-2 gap-6 text-sm">
+                        <div class="space-y-3">
+                            <h3 class="font-bold text-slate-800"><i class="fas fa-search-location mr-2 text-primary"></i>¿Para qué funciona?</h3>
+                            <p>Identifica tendencias, compara la actividad entre diferentes regiones, y obtén una visión clara de la comunidad de editores para fundamentar estrategias y reportes.</p>
+                        </div>
+                        <div class="space-y-3">
+                            <h3 class="font-bold text-slate-800"><i class="fas fa-tools mr-2 text-primary"></i>Herramientas Clave</h3>
+                            <ul class="list-disc list-inside space-y-1 text-slate-600">
+                                <li><strong>Filtros avanzados</strong> por año, país y proyecto.</li>
+                                <li><strong>Gráficos dinámicos</strong> de actividad.</li>
+                                <li><strong>Tabla de datos</strong> detallada y paginada.</li>
+                                <li><strong>Exportación a CSV</strong> para análisis externo.</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
+                 <p class="text-lg text-red-600 mb-6" v-if="statusMessage.startsWith('Error')">{{ statusMessage }}</p>
+                 <button @click="fetchAllDataFiles" class="btn btn-primary mx-auto text-lg py-3 px-8" :disabled="isLoading">
+                     <i :class="isLoading ? 'fas fa-spinner fa-spin' : 'fas fa-sync-alt'"></i>
+                     <span>{{ isLoading ? 'Cargando...' : 'Cargar Datos' }}</span>
+                 </button>
             </div>
             
             <div v-else class="space-y-8">
-                <stats-panel :stats="stats"></stats-panel>
-                <filters-panel :filters="filters" @apply="applyFilters" @clear="clearFilters" @export="exportData"></filters-panel>
+                <stats-panel id="stats-panel-tour" :stats="stats" :class="{ 'highlighted-element': tutorial.active && tutorial.step === 0 }"></stats-panel>
+                <filters-panel id="filters-panel-tour" :filters="filters" @apply="applyFilters" @clear="clearFilters" @export="exportData" :class="{ 'highlighted-element': tutorial.active && tutorial.step === 1 }"></filters-panel>
                 <div v-if="filteredData.length > 0" class="space-y-8">
-                    <editors-over-time-chart :chart-data="editorsOverTimeChartData"></editors-over-time-chart>
-                    <activity-chart :chart-data="activityChartData"></activity-chart>
-                    <results-table :headers="headers" :data="paginatedData" :current-page="currentPage" :total-pages="totalPages" :header-translations="headerTranslations" @page-changed="changePage"></results-table>
+                    <editors-over-time-chart id="time-chart-tour" :chart-data="editorsOverTimeChartData" :class="{ 'highlighted-element': tutorial.active && tutorial.step === 2 }"></editors-over-time-chart>
+                    <activity-chart id="activity-chart-tour" :chart-data="activityChartData" :class="{ 'highlighted-element': tutorial.active && tutorial.step === 3 }"></activity-chart>
+                    <results-table id="results-table-tour" :headers="headers" :data="paginatedData" :current-page="currentPage" :total-pages="totalPages" :header-translations="headerTranslations" @page-changed="changePage" :class="{ 'highlighted-element': tutorial.active && tutorial.step === 4 }"></results-table>
                 </div>
                 <div v-if="filteredData.length === 0" class="card text-center py-12">
                      <i class="fas fa-search fa-2x text-slate-400 mb-4"></i>
@@ -101,382 +146,525 @@
                 <p class="text-xs mt-4 text-slate-500">© {{ currentYear }} Wikimedia Chile. Todos los derechos reservados.</p>
             </div>
         </footer>
+
+        <!-- Elementos del Tutorial -->
+        <div v-if="tutorial.active" class="tutorial-overlay"></div>
+        <div v-if="tutorial.active && currentTutorialStep" class="tutorial-popover" :style="tutorial.position">
+            <p class="text-slate-700 mb-6">{{ currentTutorialStep.text }}</p>
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-slate-500">{{ tutorial.step + 1 }} / {{ tutorialSteps.length }}</span>
+                <div>
+                    <button @click="endTutorial" class="btn btn-secondary !py-1 !px-3 mr-2">Omitir</button>
+                    <button @click="nextTutorialStep" class="btn btn-primary !py-1 !px-3">
+                        {{ tutorial.step === tutorialSteps.length - 1 ? 'Finalizar' : 'Siguiente' }}
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
-        const { createApp, ref, reactive, computed, onMounted, watch, onBeforeUnmount } = Vue;
+const { createApp, ref, reactive, computed, onMounted, watch, onBeforeUnmount, nextTick } = Vue;
 
-        const app = createApp({
-            setup() {
-                const allData = ref([]);
-                const filteredData = ref([]);
-                const headers = ref([]);
-                const isLoading = ref(false);
-                const statusMessage = ref('');
-                const currentPage = ref(1);
-                const ROWS_PER_PAGE = 20;
-                
-                const filters = reactive({ 
-                    file: '', year: 'all', wiki: [], country: [], 
-                    options: { file: [], year: [], wiki: [], country: [] } 
-                });
+if (window.Chart && window.ChartDataLabels) {
+    try { Chart.register(ChartDataLabels); } catch (e) { /* no crítico */ }
+}
 
-                const currentYear = computed(() => new Date().getFullYear());
+const app = createApp({
+    setup() {
+        const allData = ref([]);
+        const filteredData = ref([]);
+        const headers = ref([]);
+        const isLoading = ref(false);
+        const statusMessage = ref('');
+        const currentPage = ref(1);
+        const ROWS_PER_PAGE = 20;
 
-                const stats = computed(() => {
-                    if (allData.value.length === 0) return { totalRecords: '-', totalWikis: '-', totalCountries: '-', dateRange: '-' };
-                    const months = [...new Set(allData.value.map(item => item.month))].sort();
-                    return {
-                        totalRecords: allData.value.length.toLocaleString('es-CL'),
-                        totalWikis: [...new Set(allData.value.map(item => item.wiki_db))].length.toLocaleString('es-CL'),
-                        totalCountries: [...new Set(allData.value.map(item => item.country))].length.toLocaleString('es-CL'),
-                        dateRange: `${months[0]} a ${months[months.length - 1]}`
-                    };
-                });
-
-                const totalPages = computed(() => Math.ceil(filteredData.value.length / ROWS_PER_PAGE) || 1);
-
-                const paginatedData = computed(() => {
-                    const start = (currentPage.value - 1) * ROWS_PER_PAGE;
-                    return filteredData.value.slice(start, start + ROWS_PER_PAGE);
-                });
-
-                const activityChartData = computed(() => {
-                    if (filteredData.value.length === 0) return null;
-                    const counts = filteredData.value.reduce((acc, row) => {
-                        const level = row.activity_level; if (level) acc[level] = (acc[level] || 0) + 1; return acc;
-                    }, {});
-                    const sortedLevels = Object.keys(counts).sort((a, b) => parseInt(a) - parseInt(b));
-                    return { labels: sortedLevels, data: sortedLevels.map(level => counts[level]) };
-                });
-
-                const editorsOverTimeChartData = computed(() => {
-                    if (filteredData.value.length === 0) return null;
-                    const dataByMonth = {};
-                    filteredData.value.forEach(row => {
-                        const month = row.month;
-                        const level = row.activity_level;
-                        if (!month || !level) return;
-                        dataByMonth[month] = dataByMonth[month] || {};
-                        let category = null;
-                        if (level.includes('1-4')) category = '1 to 4';
-                        else if (level.includes('5-') || level.includes('25-')) category = '5 to 99';
-                        else if (level.includes('100')) category = '100 or more';
-                        if (category) dataByMonth[month][category] = (dataByMonth[month][category] || 0) + 1;
-                    });
-                    const sortedMonths = Object.keys(dataByMonth).sort();
-                    if (sortedMonths.length === 0) return null;
-                    const datasets = {
-                        '1 to 4': { label: '1 a 4 ediciones', data: [], borderColor: '#3366cc', backgroundColor: '#3366cc', tension: 0.2, pointRadius: 4, pointHoverRadius: 6 },
-                        '5 to 99': { label: '5 a 99 ediciones', data: [], borderColor: '#f58d00', backgroundColor: '#f58d00', tension: 0.2, pointRadius: 4, pointHoverRadius: 6 },
-                        '100 or more': { label: '100 o más ediciones', data: [], borderColor: '#00af89', backgroundColor: '#00af89', tension: 0.2, pointRadius: 4, pointHoverRadius: 6 }
-                    };
-                    sortedMonths.forEach(month => {
-                        const monthData = dataByMonth[month];
-                        datasets['1 to 4'].data.push(monthData['1 to 4'] || 0);
-                        datasets['5 to 99'].data.push(monthData['5 to 99'] || 0);
-                        datasets['100 or more'].data.push(monthData['100 or more'] || 0);
-                    });
-                    return { labels: sortedMonths, datasets: Object.values(datasets) };
-                });
-                
-                const fetchAllDataFiles = async () => {
-                    isLoading.value = true;
-                    statusMessage.value = 'Obteniendo lista de archivos...';
-                    allData.value = []; 
-                    headers.value = [];
-                    
-                    try {
-                        const response = await fetch('/api/files');
-                        if (!response.ok) throw new Error(`El servidor respondió con un error: ${response.statusText}`);
-                        const fileList = await response.json();
-                        if (fileList.length === 0) throw new Error("No se encontraron archivos .tsv desde el backend.");
-                        let loadedCount = 0;
-                        const BATCH_SIZE = 5;
-                        for (let i = 0; i < fileList.length; i += BATCH_SIZE) {
-                            const batch = fileList.slice(i, i + BATCH_SIZE);
-                            const promises = batch.map(fileName => 
-                                fetch(`/api/file/${fileName}`)
-                                    .then(res => {
-                                        if (!res.ok) throw new Error(`No se pudo descargar ${fileName}`);
-                                        return res.text();
-                                    })
-                                    .then(text => ({ text, name: fileName }))
-                            );
-                            const results = await Promise.all(promises);
-                            results.forEach(res => {
-                                if (res.text) allData.value.push(...parseTSV(res.text, res.name));
-                            });
-                            loadedCount += batch.length;
-                            statusMessage.value = `Procesando ${loadedCount} de ${fileList.length} archivos...`;
-                        }
-                        populateFilters();
-                        applyFilters();
-                    } catch (error) {
-                        console.error("Error detallado:", error);
-                        statusMessage.value = `Error: ${error.message}`;
-                    } finally {
-                        isLoading.value = false;
-                    }
-                };
-
-                const parseTSV = (text, fileName) => {
-                    const lines = text.trim().split('\n');
-                    if (lines.length < 2) return [];
-                    if (headers.value.length === 0) headers.value = lines[0].split('\t').map(h => h.trim());
-                    return lines.slice(1).map(line => {
-                        const values = line.split('\t'), row = {};
-                        headers.value.forEach((h, i) => row[h] = values[i] ? values[i].trim() : '');
-                        row.__fileName = fileName; return row;
-                    });
-                };
-                
-                const populateFilters = () => {
-                    const data = allData.value;
-                    filters.options.file = [...new Set(data.map(d => d.__fileName))].sort();
-                    filters.options.wiki = [...new Set(data.map(d => d.wiki_db))].sort();
-                    filters.options.country = [...new Set(data.map(d => d.country))].sort();
-                    const years = [...new Set(data.map(d => d.month.substring(0, 4)))].sort((a, b) => b - a);
-                    filters.options.year = ['all', ...years];
-                };
-                const applyFilters = (newFilters = filters) => {
-                    let data = allData.value;
-                    if (newFilters.file) data = data.filter(d => d.__fileName === newFilters.file);
-                    if (newFilters.year && newFilters.year !== 'all') {
-                        data = data.filter(d => d.month.startsWith(newFilters.year));
-                    }
-                    if (newFilters.wiki.length) data = data.filter(d => newFilters.wiki.includes(d.wiki_db));
-                    if (newFilters.country.length) data = data.filter(d => newFilters.country.includes(d.country));
-                    filteredData.value = data; currentPage.value = 1;
-                };
-                const clearFilters = () => {
-                    filters.file = ''; filters.year = 'all'; filters.wiki = []; filters.country = []; 
-                    applyFilters();
-                };
-                const changePage = (page) => { if (page > 0 && page <= totalPages.value) currentPage.value = page; };
-                const exportData = () => {
-                    if (filteredData.value.length === 0) return;
-                    const headerRow = headers.value.map(h => headerTranslations[h] || h).join(',');
-                    const dataRows = filteredData.value.map(row => headers.value.map(header => `"${String(row[header] || '').replace(/"/g, '""')}"`).join(','));
-                    const csvContent = [headerRow, ...dataRows].join('\n');
-                    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = 'datos_geoeditores_wikimedia_chile.csv';
-                    link.click(); URL.revokeObjectURL(link.href);
-                };
-                const headerTranslations = { 'month': 'Mes', 'wiki_db': 'Proyecto Wiki', 'country': 'País', 'user_id': 'ID Usuario', 'user_name': 'Usuario', 'user_edit_count': 'Ediciones', 'user_registration': 'Registro', 'activity_level': 'Nivel Actividad' };
-
-                return { allData, filteredData, headers, isLoading, statusMessage, currentPage, stats, filters, totalPages, paginatedData, activityChartData, editorsOverTimeChartData, fetchAllDataFiles, applyFilters, clearFilters, changePage, exportData, headerTranslations, currentYear };
-            }
+        const filters = reactive({
+            file: '', year: 'all', wiki: [], country: [],
+            options: { file: [], year: [], wiki: [], country: [] }
         });
 
-        // --- Componentes ---
-        app.component('searchable-multiselect', {
-            props: { modelValue: { type: Array, default: () => [] }, options: { type: Array, default: () => [] }, placeholder: { type: String, default: 'Seleccionar...' } },
-            emits: ['update:modelValue'],
-            setup(props, { emit }) {
-                const isOpen = ref(false);
-                const searchTerm = ref('');
-                const root = ref(null);
-                const filteredOptions = computed(() => {
-                    if (!searchTerm.value) return props.options;
-                    return props.options.filter(opt => opt.toLowerCase().includes(searchTerm.value.toLowerCase()));
-                });
-                const toggleOption = (option) => {
-                    const newValue = [...props.modelValue];
-                    const index = newValue.indexOf(option);
-                    if (index > -1) { newValue.splice(index, 1); } else { newValue.push(option); }
-                    emit('update:modelValue', newValue);
-                };
-                const handleClickOutside = (event) => { if (root.value && !root.value.contains(event.target)) { isOpen.value = false; } };
-                onMounted(() => document.addEventListener('click', handleClickOutside));
-                onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside));
-                return { isOpen, searchTerm, root, filteredOptions, toggleOption };
-            },
-            template: `
-                <div class="relative" ref="root">
-                    <div @click="isOpen = !isOpen" class="filter-input flex justify-between items-center cursor-pointer">
-                        <span class="text-slate-500" v-if="modelValue.length === 0">{{ placeholder }}</span>
-                        <span class="font-medium" v-else>{{ modelValue.length }} seleccionado(s)</span>
-                        <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform" :class="{'rotate-180': isOpen}"></i>
-                    </div>
-                    <div v-if="isOpen" class="absolute top-full left-0 right-0 mt-2 bg-white border border-border-color rounded-lg shadow-lg z-10">
-                        <div class="p-2"><input type="text" v-model="searchTerm" placeholder="Buscar..." class="filter-input w-full text-sm"></div>
-                        <ul class="max-h-60 overflow-y-auto p-2">
-                            <li v-for="option in filteredOptions" :key="option" @click.stop="toggleOption(option)" class="flex items-center p-2 rounded-md hover:bg-slate-100 cursor-pointer">
-                                <input type="checkbox" :checked="modelValue.includes(option)" class="mr-3 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary">
-                                <span class="text-sm text-slate-700">{{ option }}</span>
-                            </li>
-                            <li v-if="filteredOptions.length === 0" class="p-2 text-sm text-slate-500 text-center">No hay resultados</li>
-                        </ul>
-                    </div>
-                </div>`
+        // --- Lógica del Tutorial ---
+        const tutorial = reactive({
+            active: false,
+            step: 0,
+            ran: false, 
+            position: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
         });
+        const tutorialSteps = [
+            { selector: '#stats-panel-tour', text: 'Aquí tienes un resumen general de los datos cargados. Muestra el total de registros, wikis, países y el rango de fechas cubierto.' },
+            { selector: '#filters-panel-tour', text: 'Usa estos controles para segmentar los datos. Puedes filtrar por año, archivo de origen, proyecto wiki específico o país.' },
+            { selector: '#time-chart-tour', text: 'Este gráfico de líneas muestra la evolución de los editores a lo largo del tiempo, separados por su nivel de actividad (cantidad de ediciones).' },
+            { selector: '#activity-chart-tour', text: 'Este gráfico de barras te da una vista rápida del total de editores en cada categoría de actividad para los datos filtrados.' },
+            { selector: '#results-table-tour', text: 'Finalmente, aquí puedes ver los datos en detalle. Usa la paginación para navegar por todos los resultados.' },
+        ];
+        const currentTutorialStep = computed(() => tutorialSteps[tutorial.step]);
 
-        app.component('stats-panel', {
-            props: ['stats'],
-            template: `
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-light text-primary text-xl"><i class="fas fa-database"></i></div><div><div class="text-sm text-slate-500">Total Registros</div><div class="text-2xl font-bold">{{ stats.totalRecords }}</div></div></div>
-                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl"><i class="fas fa-globe"></i></div><div><div class="text-sm text-slate-500">Wikis Diferentes</div><div class="text-2xl font-bold">{{ stats.totalWikis }}</div></div></div>
-                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 text-xl"><i class="fas fa-flag"></i></div><div><div class="text-sm text-slate-500">Países Únicos</div><div class="text-2xl font-bold">{{ stats.totalCountries }}</div></div></div>
-                    <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-600 text-xl"><i class="fas fa-calendar-alt"></i></div><div><div class="text-sm text-slate-500">Rango de Fechas</div><div class="text-lg font-bold">{{ stats.dateRange }}</div></div></div>
-                </div>`
-        });
+        const updateTutorialPosition = () => {
+             if (!tutorial.active) return;
+             const step = currentTutorialStep.value;
+             if (!step) return;
+             const targetElement = document.querySelector(step.selector);
+             if (!targetElement) {
+                tutorial.position = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+                return;
+             }
+             const rect = targetElement.getBoundingClientRect();
+             const popover = document.querySelector('.tutorial-popover');
+             const popoverHeight = popover ? popover.offsetHeight : 180;
+             const popoverWidth = popover ? popover.offsetWidth : 380;
+             const margin = 15; // Space between element and popover
 
-        app.component('filters-panel', {
-            props: ['filters'],
-            emits: ['apply', 'clear', 'export'],
-            setup(props, { emit }) {
-                const localFilters = reactive(JSON.parse(JSON.stringify(props.filters)));
-                watch(() => props.filters, (newFilters) => {
-                    Object.assign(localFilters, newFilters);
-                }, { deep: true });
-                return { localFilters, emit };
-            },
-            template: `
-                <div class="card">
-                    <div class="card-body">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                            <div>
-                                <label class="font-medium text-sm mb-2 block">Año</label>
-                                <select v-model="localFilters.year" class="filter-input">
-                                    <option v-for="opt in filters.options.year" :value="opt">{{ opt === 'all' ? 'Todos' : opt }}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="font-medium text-sm mb-2 block">Archivo</label>
-                                <select v-model="localFilters.file" class="filter-input">
-                                    <option value="">Todos</option>
-                                    <option v-for="opt in filters.options.file" :value="opt">{{ opt }}</option>
-                                </select>
-                            </div>
-                            <div class="lg:col-span-1">
-                                <label class="font-medium text-sm mb-2 block">Proyecto (Wiki)</label>
-                                <searchable-multiselect v-model="localFilters.wiki" :options="filters.options.wiki" placeholder="Seleccionar Wikis..."></searchable-multiselect>
-                            </div>
-                            <div class="lg:col-span-1">
-                                <label class="font-medium text-sm mb-2 block">País</label>
-                                <searchable-multiselect v-model="localFilters.country" :options="filters.options.country" placeholder="Seleccionar Países..."></searchable-multiselect>
-                            </div>
-                            <div class="md:col-span-2 lg:col-span-1 flex flex-col justify-end gap-3">
-                                <button @click="emit('apply', localFilters)" class="btn btn-primary w-full"><i class="fas fa-check"></i>Aplicar</button>
-                                <div class="flex gap-3">
-                                    <button @click="emit('clear')" class="btn btn-secondary w-full"><i class="fas fa-times"></i>Limpiar</button>
-                                    <button @click="emit('export')" class="btn btn-secondary w-full"><i class="fas fa-file-export"></i>Exportar</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`
-        });
+             let top;
 
-        app.component('editors-over-time-chart', {
-            props: ['chartData'],
-            setup(props) {
-                const chartCanvas = ref(null);
-                let chartInstance = null;
-                const renderChart = () => {
-                    if (chartInstance) chartInstance.destroy();
-                    if (!props.chartData || !chartCanvas.value) return;
-                    const ctx = chartCanvas.value.getContext('2d');
-                    chartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: props.chartData.labels,
-                            datasets: props.chartData.datasets
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'bottom' },
-                                tooltip: { 
-                                    backgroundColor: '#202122',
-                                    callbacks: { label: c => `${c.dataset.label}: ${c.raw.toLocaleString('es-CL')} editores` }
-                                },
-                                datalabels: { display: false }
-                            },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#eaecf0' }, ticks: { color: '#54595d' } },
-                                x: { grid: { display: false }, ticks: { color: '#54595d', maxRotation: 45, minRotation: 45 } }
-                            },
-                            interaction: { intersect: false, mode: 'index' }
-                        }
-                    });
-                };
-                onMounted(renderChart);
-                watch(() => props.chartData, renderChart);
-                return { chartCanvas };
-            },
-            template: `<div class="card"><div class="card-header"><h2 class="text-xl font-bold">Editores por Nivel de Actividad a lo Largo del Tiempo</h2></div><div class="card-body"><div class="h-96"><canvas ref="chartCanvas"></canvas></div></div></div>`
-        });
+             // MEJORA: Lógica de posicionamiento más robusta
+             // Prioriza colocar el popover donde sea completamente visible.
+             if (rect.bottom + popoverHeight + margin < window.innerHeight) {
+                // Se ajusta completamente abajo
+                top = rect.bottom + margin;
+             } else if (rect.top - popoverHeight - margin > 0) {
+                // Se ajusta completamente arriba
+                top = rect.top - popoverHeight - margin;
+             } else {
+                // Fallback: si no cabe en ningún lado, elige el espacio más grande.
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                if (spaceAbove > spaceBelow) {
+                    top = rect.top - popoverHeight - margin; // Elige arriba
+                } else {
+                    top = rect.bottom + margin; // Elige abajo
+                }
+             }
 
-        app.component('activity-chart', {
-            props: ['chartData'],
-            setup(props) {
-                const chartCanvas = ref(null); let chartInstance = null;
-                const renderChart = () => {
-                    if (chartInstance) chartInstance.destroy();
-                    if (!props.chartData || !chartCanvas.value) return;
-                    const ctx = chartCanvas.value.getContext('2d');
-                    const chartColors = ['#3366cc', '#00af89', '#f58d00', '#ff5722', '#d33', '#54595d'];
-                    chartInstance = new Chart(ctx, {
-                        type: 'bar', data: { labels: props.chartData.labels, datasets: [{ data: props.chartData.data, backgroundColor: chartColors, borderRadius: 4 }] },
-                        options: {
-                            responsive: true, maintainAspectRatio: false,
-                            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#202122', callbacks: { label: c => `Editores: ${c.raw.toLocaleString('es-CL')}` }}, datalabels: { anchor: 'end', align: 'top', formatter: (v) => v > 0 ? v.toLocaleString('es-CL') : '', color: '#54595d', font: { weight: '600' } } },
-                            scales: { y: { beginAtZero: true, grid: { color: '#eaecf0' }, ticks: { color: '#54595d', callback: v => (v >= 1000) ? `${v/1000}k` : v }, suggestedMax: Math.max(...props.chartData.data) * 1.15 }, x: { grid: { display: false }, ticks: { color: '#54595d' } } }
-                        }
-                    });
-                };
-                onMounted(renderChart); watch(() => props.chartData, renderChart);
-                return { chartCanvas };
-            },
-            template: `<div class="card"><div class="card-header"><h2 class="text-xl font-bold">Total Editores por Nivel de Actividad</h2></div><div class="card-body"><div class="h-80"><canvas ref="chartCanvas"></canvas></div></div></div>`
-        });
-
-        app.component('results-table', {
-            props: ['headers', 'data', 'currentPage', 'totalPages', 'headerTranslations'],
-            emits: ['page-changed'],
-            setup() {
-                const getBadgeClass = (level) => {
-                    if (!level) return 'badge-gray'; 
-                    if (level.includes('1-4')) return 'badge-blue'; 
-                    if (level.includes('5-') || level.includes('25-')) return 'badge-green'; 
-                    if (level.includes('100')) return 'badge-orange'; 
-                    return 'badge-gray';
-                };
-                return { getBadgeClass };
-            },
-            template: `
-                <div class="card">
-                    <div class="card-header flex justify-between items-center">
-                        <h2 class="text-xl font-bold">Resultados</h2>
-                        <span class="font-semibold text-primary">{{ data.length }} registros en esta página</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-container"><table class="w-full">
-                            <thead><tr><th v-for="h in headers">{{ headerTranslations[h] || h }}</th></tr></thead>
-                            <tbody><tr v-for="row in data">
-                                <td v-for="header in headers">
-                                    <span v-if="header === 'activity_level'" class="badge" :class="getBadgeClass(row[header])">{{ row[header] }}</span>
-                                    <span v-else>{{ row[header] }}</span>
-                                </td>
-                            </tr></tbody>
-                        </table></div>
-                         <div class="mt-4 flex justify-between items-center">
-                            <div class="text-sm text-slate-600">Página {{ currentPage }} de {{ totalPages }}</div>
-                            <div class="flex gap-2">
-                                <button @click="$emit('page-changed', currentPage - 1)" :disabled="currentPage === 1" class="btn btn-secondary !py-1 !px-3"><i class="fas fa-chevron-left"></i></button>
-                                <button @click="$emit('page-changed', currentPage + 1)" :disabled="currentPage === totalPages" class="btn btn-secondary !py-1 !px-3"><i class="fas fa-chevron-right"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`
-        });
+             let left = rect.left + (rect.width / 2);
+             if (left - popoverWidth/2 < 10) left = popoverWidth/2 + 10;
+             if (left + popoverWidth/2 > window.innerWidth - 10) left = window.innerWidth - popoverWidth/2 - 10;
+             
+             tutorial.position = {
+                top: `${top}px`,
+                left: `${left}px`,
+                transform: `translateX(-50%)`
+             };
+        };
+        const startTutorial = () => {
+            if (tutorial.ran) return;
+            tutorial.ran = true;
+            tutorial.active = true;
+            tutorial.step = 0;
+            nextTick(updateTutorialPosition);
+        };
+        const endTutorial = () => { tutorial.active = false; };
         
-        app.mount('#app');
-    </script>
+        const nextTutorialStep = () => {
+            if (tutorial.step < tutorialSteps.length - 1) {
+                tutorial.step++;
+                nextTick(() => {
+                    const nextStep = tutorialSteps[tutorial.step];
+                    const element = document.querySelector(nextStep.selector);
+                    if (element) {
+                        element.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                    // MEJORA: Un pequeño timeout asegura que la posición se recalcula después de que el scroll ha comenzado,
+                    // evitando que el popover "desaparezca" momentáneamente. El listener de scroll se encarga del resto.
+                    setTimeout(updateTutorialPosition, 50);
+                });
+            } else {
+                endTutorial();
+            }
+        };
+        
+        onMounted(() => {
+            window.addEventListener('scroll', updateTutorialPosition, true);
+            window.addEventListener('resize', updateTutorialPosition);
+        });
+        onBeforeUnmount(() => {
+            window.removeEventListener('scroll', updateTutorialPosition, true);
+            window.removeEventListener('resize', updateTutorialPosition);
+        });
+
+        const currentYear = computed(() => new Date().getFullYear());
+
+        // --- Código Original (sin cambios) ---
+        const findHeaderKey = (candidates) => {
+            const low = headers.value.map(h => h.toLowerCase());
+            for (const cand of candidates) {
+                for (let i = 0; i < low.length; i++) {
+                    if (low[i].includes(cand)) return headers.value[i];
+                }
+            }
+            return null;
+        };
+        const normMonth = (raw) => {
+            if (!raw) return '';
+            const s = raw.toString().trim();
+            const m1 = s.match(/(\d{4})[-\/](\d{1,2})/);
+            if (m1) return `${m1[1]}-${String(m1[2]).padStart(2,'0')}`;
+            const m2 = s.match(/(\d{4})(\d{2})/);
+            if (m2) return `${m2[1]}-${m2[2]}`;
+            const m3 = s.match(/(\d{4})/);
+            return m3 ? `${m3[1]}` : s.slice(0,7);
+        };
+        const parseNumber = (val) => {
+            if (val === null || val === undefined) return 0;
+            const s = String(val).trim();
+            if (!s) return 0;
+            const digits = s.replace(/[^\d\-]/g,'');
+            const n = parseInt(digits, 10);
+            return isNaN(n) ? 0 : n;
+        };
+        const parseEdits = (val) => parseNumber(val);
+        const detectCategory = (activityText, editsNum) => {
+            const t = (activityText || '').toString().toLowerCase();
+            if (t) {
+                if ((/1\D*4/.test(t)) || t.includes('1-4') || t.includes('1 a 4') || (t.includes('1') && t.includes('4'))) return '1-4';
+                if ((/5\D*99/.test(t)) || t.includes('5-99') || t.includes('5 a 99') || t.includes('5-')) return '5-99';
+                if (t.includes('100') || t.includes('100+')) return '100+';
+            }
+            const n = editsNum || 0;
+            if (n >= 1 && n <= 4) return '1-4';
+            if (n >= 5 && n <= 99) return '5-99';
+            if (n >= 100) return '100+';
+            return '0';
+        };
+        const stats = computed(() => {
+            if (allData.value.length === 0) return { totalRecords: '-', totalWikis: '-', totalCountries: '-', dateRange: '-' };
+            const months = [...new Set(allData.value.map(item => item._month).filter(Boolean))].sort();
+            return {
+                totalRecords: allData.value.length.toLocaleString('es-CL'),
+                totalWikis: [...new Set(allData.value.map(item => item.wiki_db))].length.toLocaleString('es-CL'),
+                totalCountries: [...new Set(allData.value.map(item => item.country))].length.toLocaleString('es-CL'),
+                dateRange: months.length ? `${months[0]} a ${months[months.length - 1]}` : '-'
+            };
+        });
+        const totalPages = computed(() => Math.ceil(filteredData.value.length / ROWS_PER_PAGE) || 1);
+        const paginatedData = computed(() => {
+            const start = (currentPage.value - 1) * ROWS_PER_PAGE;
+            return filteredData.value.slice(start, start + ROWS_PER_PAGE);
+        });
+        const activityChartData = computed(() => {
+            if (!filteredData.value.length) return null;
+            const counts = { '1-4': 0, '5-99': 0, '100+': 0 };
+            filteredData.value.forEach(r => {
+                const c = r._category || '0';
+                const editors = Number(r._editorsCount || 0);
+                if (c === '1-4') counts['1-4'] += editors;
+                else if (c === '5-99') counts['5-99'] += editors;
+                else if (c === '100+') counts['100+'] += editors;
+            });
+            return { labels: ['1 a 4', '5 a 99', '100+'], data: [counts['1-4'], counts['5-99'], counts['100+']] };
+        });
+        const editorsOverTimeChartData = computed(() => {
+            if (!filteredData.value.length) return null;
+            const map = {};
+            filteredData.value.forEach(r => {
+                const m = r._month || 'sin-mes';
+                const c = r._category || '0';
+                const editors = Number(r._editorsCount || 0);
+                if (!map[m]) map[m] = { '1-4': 0, '5-99': 0, '100+': 0 };
+                if (c === '1-4') map[m]['1-4'] += editors;
+                else if (c === '5-99') map[m]['5-99'] += editors;
+                else if (c === '100+') map[m]['100+'] += editors;
+            });
+            const months = Object.keys(map).sort();
+            if (!months.length) return null;
+            const d1 = [], d2 = [], d3 = [];
+            months.forEach(m => {
+                d1.push(map[m]['1-4'] || 0);
+                d2.push(map[m]['5-99'] || 0);
+                d3.push(map[m]['100+'] || 0);
+            });
+            const datasets = [
+                { label: '1 a 4 ediciones', data: d1, borderColor: '#3366cc', backgroundColor: '#3366cc', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true },
+                { label: '5 a 99 ediciones', data: d2, borderColor: '#f58d00', backgroundColor: '#f58d00', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true },
+                { label: '100 o más ediciones', data: d3, borderColor: '#00af89', backgroundColor: '#00af89', tension: 0.2, pointRadius: 4, borderWidth: 2, fill: false, spanGaps: true },
+            ];
+            return { labels: months, datasets };
+        });
+        const fetchAllDataFiles = async () => {
+            isLoading.value = true;
+            statusMessage.value = 'Obteniendo lista de archivos...';
+            allData.value = [];
+            headers.value = [];
+            try {
+                const response = await fetch('/api/files');
+                if (!response.ok) throw new Error(`El servidor respondió con un error: ${response.statusText}`);
+                const fileList = await response.json();
+                if (fileList.length === 0) throw new Error("No se encontraron archivos .tsv desde el backend.");
+                let loadedCount = 0;
+                const BATCH_SIZE = 5;
+                for (let i = 0; i < fileList.length; i += BATCH_SIZE) {
+                    const batch = fileList.slice(i, i + BATCH_SIZE);
+                    const promises = batch.map(fileName =>
+                        fetch(`/api/file/${fileName}`)
+                            .then(res => { if (!res.ok) throw new Error(`No se pudo descargar ${fileName}`); return res.text(); })
+                            .then(text => ({ text, name: fileName }))
+                    );
+                    const results = await Promise.all(promises);
+                    results.forEach(res => { if (res.text) allData.value.push(...parseTSV(res.text, res.name)); });
+                    loadedCount += batch.length;
+                    statusMessage.value = `Procesando ${loadedCount} de ${fileList.length} archivos...`;
+                }
+                normalizeRecords();
+                populateFilters();
+                applyFilters();
+                if (!tutorial.ran) {
+                    setTimeout(startTutorial, 500);
+                }
+            } catch (error) {
+                console.error("Error detallado:", error);
+                statusMessage.value = `Error: ${error.message}`;
+            } finally {
+                isLoading.value = false;
+            }
+        };
+        const parseTSV = (text, fileName) => {
+            const lines = text.trim().split('\n');
+            if (lines.length < 2) return [];
+            if (headers.value.length === 0) headers.value = lines[0].split('\t').map(h => h.trim());
+            return lines.slice(1).map(line => {
+                const values = line.split('\t'), row = {};
+                headers.value.forEach((h, i) => row[h] = values[i] ? values[i].trim() : '');
+                row.__fileName = fileName;
+                return row;
+            });
+        };
+        const normalizeRecords = () => {
+            const monthKey = findHeaderKey(['month','mes','date','fecha']);
+            const editsKey = findHeaderKey(['edit','edicion','edit_count','user_edit_count','editcount','ediciones']);
+            const activityKey = findHeaderKey(['activity','activity_level','nivel','nivel_actividad','activity-level']);
+            const editorsCountKey = findHeaderKey(['editors','editor_count','editors_count','count','editors_total','editors_total','editors_agg','editors_aggregated','editors_per_month','editor_count']);
+            allData.value = allData.value.map(r => {
+                const copy = { ...r };
+                const rawMonth = (monthKey && copy[monthKey]) ? copy[monthKey] : (copy.month || copy.date || copy.mes || '');
+                copy._month = normMonth(rawMonth);
+                const rawEdits = (editsKey && copy[editsKey]) ? copy[editsKey] : (copy.user_edit_count || copy.edit_count || copy.ediciones || '');
+                copy._edits = parseEdits(rawEdits);
+                const rawActivity = (activityKey && copy[activityKey]) ? copy[activityKey] : (copy.activity_level || '');
+                let editorsCount = 0;
+                if (editorsCountKey && copy[editorsCountKey]) editorsCount = parseNumber(copy[editorsCountKey]);
+                if (!editorsCount) {
+                    if (copy.user_id || copy.user_name || copy.user) editorsCount = 1;
+                }
+                copy._editorsCount = editorsCount;
+                copy._category = detectCategory(rawActivity, copy._edits);
+                return copy;
+            });
+        };
+        const populateFilters = () => {
+            const data = allData.value;
+            filters.options.file = [...new Set(data.map(d => d.__fileName))].sort();
+            filters.options.wiki = [...new Set(data.map(d => d.wiki_db))].sort();
+            filters.options.country = [...new Set(data.map(d => d.country))].sort();
+            const years = [...new Set(data.map(d => (d._month || '').toString().slice(0,4)))].filter(Boolean).sort((a,b) => b - a);
+            filters.options.year = ['all', ...years];
+        };
+        const applyFilters = (newFilters = filters) => {
+            let data = allData.value.slice();
+            if (newFilters.file) data = data.filter(d => d.__fileName === newFilters.file);
+            if (newFilters.year && newFilters.year !== 'all') data = data.filter(d => (d._month || '').startsWith(newFilters.year));
+            if (newFilters.wiki && newFilters.wiki.length) data = data.filter(d => newFilters.wiki.includes(d.wiki_db));
+            if (newFilters.country && newFilters.country.length) data = data.filter(d => newFilters.country.includes(d.country));
+            filteredData.value = data;
+            currentPage.value = 1;
+        };
+        const clearFilters = () => {
+            filters.file = ''; filters.year = 'all'; filters.wiki = []; filters.country = [];
+            applyFilters();
+        };
+        const changePage = (page) => { if (page > 0 && page <= totalPages.value) currentPage.value = page; };
+        const exportData = () => {
+            if (filteredData.value.length === 0) return;
+            const headerRow = headers.value.map(h => headerTranslations[h] || h).join(',');
+            const dataRows = filteredData.value.map(row => headers.value.map(header => `"${String(row[header] || '').replace(/"/g, '""')}"`).join(','));
+            const csvContent = [headerRow, ...dataRows].join('\n');
+            const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'datos_geoeditores_wikimedia_chile.csv';
+            link.click(); URL.revokeObjectURL(link.href);
+        };
+        const headerTranslations = { 'month': 'Mes', 'wiki_db': 'Proyecto Wiki', 'country': 'País', 'user_id': 'ID Usuario', 'user_name': 'Usuario', 'user_edit_count': 'Ediciones', 'user_registration': 'Registro', 'activity_level': 'Nivel Actividad' };
+
+        return { allData, filteredData, headers, isLoading, statusMessage, currentPage, stats, filters, totalPages, paginatedData, activityChartData, editorsOverTimeChartData, fetchAllDataFiles, applyFilters, clearFilters, changePage, exportData, headerTranslations, currentYear, tutorial, tutorialSteps, currentTutorialStep, nextTutorialStep, endTutorial };
+    }
+});
+
+// ----- Componentes Originales (sin cambios) -----
+app.component('searchable-multiselect', {
+    props: { modelValue: { type: Array, default: () => [] }, options: { type: Array, default: () => [] }, placeholder: { type: String, default: 'Seleccionar...' } },
+    emits: ['update:modelValue'],
+    setup(props, { emit }) {
+        const isOpen = ref(false), searchTerm = ref(''), root = ref(null);
+        const filteredOptions = computed(() => {
+            if (!searchTerm.value) return props.options;
+            return props.options.filter(opt => opt.toLowerCase().includes(searchTerm.value.toLowerCase()));
+        });
+        const toggleOption = (option) => {
+            const newValue = [...props.modelValue];
+            const i = newValue.indexOf(option);
+            if (i > -1) newValue.splice(i,1); else newValue.push(option);
+            emit('update:modelValue', newValue);
+        };
+        const handleClickOutside = (e) => { if (root.value && !root.value.contains(e.target)) isOpen.value = false; };
+        onMounted(() => document.addEventListener('click', handleClickOutside));
+        onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside));
+        return { isOpen, searchTerm, root, filteredOptions, toggleOption };
+    },
+    template: `<div class="relative" ref="root">
+        <div @click="isOpen = !isOpen" class="filter-input flex justify-between items-center cursor-pointer">
+            <span class="text-slate-500" v-if="modelValue.length === 0">{{ placeholder }}</span>
+            <span class="font-medium" v-else>{{ modelValue.length }} seleccionado(s)</span>
+            <i class="fas fa-chevron-down text-slate-400 text-xs transition-transform" :class="{'rotate-180': isOpen}"></i>
+        </div>
+        <div v-if="isOpen" class="absolute top-full left-0 right-0 mt-2 bg-white border border-border-color rounded-lg shadow-lg z-10">
+            <div class="p-2"><input type="text" v-model="searchTerm" placeholder="Buscar..." class="filter-input w-full text-sm"></div>
+            <ul class="max-h-60 overflow-y-auto p-2">
+                <li v-for="option in filteredOptions" :key="option" @click.stop="toggleOption(option)" class="flex items-center p-2 rounded-md hover:bg-slate-100 cursor-pointer">
+                    <input type="checkbox" :checked="modelValue.includes(option)" class="mr-3 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary">
+                    <span class="text-sm text-slate-700">{{ option }}</span>
+                </li>
+                <li v-if="filteredOptions.length === 0" class="p-2 text-sm text-slate-500 text-center">No hay resultados</li>
+            </ul>
+        </div>
+    </div>`
+});
+
+app.component('stats-panel', {
+    props: ['stats'],
+    template: `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-primary-light text-primary text-xl"><i class="fas fa-database"></i></div><div><div class="text-sm text-slate-500">Total Registros</div><div class="text-2xl font-bold">{{ stats.totalRecords }}</div></div></div>
+        <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-100 text-green-600 text-xl"><i class="fas fa-globe"></i></div><div><div class="text-sm text-slate-500">Wikis Diferentes</div><div class="text-2xl font-bold">{{ stats.totalWikis }}</div></div></div>
+        <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 text-xl"><i class="fas fa-flag"></i></div><div><div class="text-sm text-slate-500">Países Únicos</div><div class="text-2xl font-bold">{{ stats.totalCountries }}</div></div></div>
+        <div class="card p-5 flex items-center gap-4"><div class="w-12 h-12 rounded-full flex items-center justify-center bg-red-100 text-red-600 text-xl"><i class="fas fa-calendar-alt"></i></div><div><div class="text-sm text-slate-500">Rango de Fechas</div><div class="text-lg font-bold">{{ stats.dateRange }}</div></div></div>
+    </div>`
+});
+
+app.component('filters-panel', {
+    props: ['filters'],
+    emits: ['apply', 'clear', 'export'],
+    setup(props, { emit }) {
+        const localFilters = reactive(JSON.parse(JSON.stringify(props.filters)));
+        watch(() => props.filters, (newFilters) => Object.assign(localFilters, newFilters), { deep: true });
+        return { localFilters, emit };
+    },
+    template: `<div class="card"><div class="card-body">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div><label class="font-medium text-sm mb-2 block">Año</label><select v-model="localFilters.year" class="filter-input"><option v-for="opt in filters.options.year" :value="opt">{{ opt === 'all' ? 'Todos' : opt }}</option></select></div>
+            <div><label class="font-medium text-sm mb-2 block">Archivo</label><select v-model="localFilters.file" class="filter-input"><option value="">Todos</option><option v-for="opt in filters.options.file" :value="opt">{{ opt }}</option></select></div>
+            <div class="lg:col-span-1"><label class="font-medium text-sm mb-2 block">Proyecto (Wiki)</label><searchable-multiselect v-model="localFilters.wiki" :options="filters.options.wiki" placeholder="Seleccionar Wikis..."></searchable-multiselect></div>
+            <div class="lg:col-span-1"><label class="font-medium text-sm mb-2 block">País</label><searchable-multiselect v-model="localFilters.country" :options="filters.options.country" placeholder="Seleccionar Países..."></searchable-multiselect></div>
+            <div class="md:col-span-2 lg:col-span-1 flex flex-col justify-end gap-3 min-w-0">
+                <button @click="emit('apply', localFilters)" class="btn btn-primary w-full"><i class="fas fa-check"></i>Aplicar</button>
+                <div class="flex gap-3 w-full min-w-0">
+                    <button @click="emit('clear')" class="btn btn-secondary w-full min-w-0"><i class="fas fa-times"></i>Limpiar</button>
+                    <button @click="emit('export')" class="btn btn-secondary w-full min-w-0 truncate"><i class="fas fa-file-export"></i>Exportar</button>
+                </div>
+            </div>
+        </div>
+    </div></div>`
+});
+
+app.component('editors-over-time-chart', {
+    props: ['chartData'],
+    setup(props) {
+        const chartCanvas = ref(null);
+        let chartInstance = null;
+        const renderChart = () => {
+            if (chartInstance) chartInstance.destroy();
+            if (!props.chartData || !chartCanvas.value) return;
+            const ctx = chartCanvas.value.getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: props.chartData.labels, datasets: props.chartData.datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' }, tooltip: { backgroundColor: '#202122', callbacks: { label: c => `${c.dataset.label}: ${c.raw.toLocaleString('es-CL')} editores` } }, datalabels: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#eaecf0' }, ticks: { color: '#54595d' } }, x: { grid: { display: false }, ticks: { color: '#54595d', maxRotation: 45, minRotation: 45 } } },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+        };
+        onMounted(renderChart); watch(() => props.chartData, renderChart);
+        return { chartCanvas };
+    },
+    template: `<div class="card"><div class="card-header"><h2 class="text-xl font-bold">Editores por Nivel de Actividad a lo Largo del Tiempo</h2></div><div class="card-body"><div class="h-96"><canvas ref="chartCanvas"></canvas></div></div></div>`
+});
+
+app.component('activity-chart', {
+    props: ['chartData'],
+    setup(props) {
+        const chartCanvas = ref(null); let chartInstance = null;
+        const renderChart = () => {
+            if (chartInstance) chartInstance.destroy();
+            if (!props.chartData || !chartCanvas.value) return;
+            const ctx = chartCanvas.value.getContext('2d');
+            const colors = ['#3366cc','#f58d00','#00af89'];
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: props.chartData.labels, datasets: [{ data: props.chartData.data, backgroundColor: colors.slice(0, props.chartData.data.length), borderRadius: 4 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#202122', callbacks: { label: c => `Editores: ${c.raw.toLocaleString('es-CL')}` }}, datalabels: { anchor: 'end', align: 'top', formatter: (v) => v > 0 ? v.toLocaleString('es-CL') : '', color: '#54595d', font: { weight: '600' } } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#eaecf0' }, ticks: { color: '#54595d', callback: v => (v >= 1000) ? `${v/1000}k` : v }, suggestedMax: Math.max(...props.chartData.data) * 1.15 }, x: { grid: { display: false }, ticks: { color: '#54595d' } } }
+                }
+            });
+        };
+        onMounted(renderChart); watch(() => props.chartData, renderChart);
+        return { chartCanvas };
+    },
+    template: `<div class="card"><div class="card-header"><h2 class="text-xl font-bold">Total Editores por Nivel de Actividad</h2></div><div class="card-body"><div class="h-80"><canvas ref="chartCanvas"></canvas></div></div></div>`
+});
+
+app.component('results-table', {
+    props: ['headers', 'data', 'currentPage', 'totalPages', 'headerTranslations'],
+    emits: ['page-changed'],
+    setup() {
+        const getBadgeClass = (level) => {
+            if (!level) return 'badge-gray';
+            if (typeof level === 'string' && (level.includes('1-4') || level.includes('1 a 4'))) return 'badge-blue';
+            if (typeof level === 'string' && (level.includes('5-') || level.includes('5 a 99') || level.includes('5-99'))) return 'badge-green';
+            if (typeof level === 'string' && (level.includes('100') || level.includes('100+'))) return 'badge-orange';
+            return 'badge-gray';
+        };
+        return { getBadgeClass };
+    },
+    template: `
+        <div class="card">
+            <div class="card-header flex justify-between items-center">
+                <h2 class="text-xl font-bold">Resultados</h2>
+                <span class="font-semibold text-primary">{{ data.length }} registros en esta página</span>
+            </div>
+            <div class="card-body">
+                <div class="table-container overflow-x-auto"><table class="w-full">
+                    <thead><tr><th v-for="h in headers" class="text-left py-2">{{ headerTranslations[h] || h }}</th></tr></thead>
+                    <tbody><tr v-for="row in data" :key="row.__fileName + (row.user_id||'') + (row.user_name||'')">
+                        <td v-for="header in headers" class="py-1 align-top">
+                            <span v-if="header === 'activity_level'">
+                                <span v-if="row.activity_level" class="badge" :class="getBadgeClass(row.activity_level)">{{ row.activity_level }}</span>
+                                <span v-else>{{ row[header] }}</span>
+                            </span>
+                            <span v-else>{{ row[header] }}</span>
+                        </td>
+                    </tr></tbody>
+                </table></div>
+                 <div class="mt-4 flex justify-between items-center">
+                     <div class="text-sm text-slate-600">Página {{ currentPage }} de {{ totalPages }}</div>
+                     <div class="flex gap-2">
+                         <button @click="$emit('page-changed', currentPage - 1)" :disabled="currentPage === 1" class="btn btn-secondary !py-1 !px-3"><i class="fas fa-chevron-left"></i></button>
+                         <button @click="$emit('page-changed', currentPage + 1)" :disabled="currentPage === totalPages" class="btn btn-secondary !py-1 !px-3"><i class="fas fa-chevron-right"></i></button>
+                     </div>
+                 </div>
+            </div>
+        </div>`
+});
+
+app.mount('#app');
+</script>
+
 </body>
 </html>
