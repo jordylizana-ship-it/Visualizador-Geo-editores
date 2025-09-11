@@ -1,10 +1,10 @@
-Visualizador de Datos Geo-editores de Wikimedia (Full-Stack)
-Una aplicación web interactiva con una arquitectura cliente-servidor para cargar, visualizar, filtrar y analizar los datos públicos del directorio de análisis de geo-editores de Wikimedia.
+Visualizador de Datos Geo-editores de Wikimedia
+Una aplicación web interactiva con una arquitectura cliente-servidor para cargar, visualizar, filtrar, comparar y analizar los datos públicos del directorio de análisis de geo-editores de Wikimedia.
 
 Descripción del Proyecto
-Este visualizador es una herramienta diseñada para facilitar el análisis de los datos mensuales sobre los editores de los proyectos Wikimedia, clasificados por ubicación geográfica.
+Este visualizador es una herramienta integral diseñada para facilitar el análisis de los datos mensuales sobre los editores de los proyectos Wikimedia. La plataforma ha evolucionado para incluir no solo una visualización robusta, sino también un tutorial interactivo para guiar a los nuevos usuarios y una potente herramienta de comparación de datos para análisis más profundos.
 
-La aplicación utiliza un backend de Node.js para obtener los datos directamente desde la fuente oficial de Wikimedia Analytics, eliminando la necesidad de proxies externos y garantizando una conexión estable. El frontend, construido con Vue.js 3, consume estos datos y los presenta en una interfaz limpia e intuitiva, permitiendo al usuario explorar la información a través de filtros y múltiples gráficos interactivos.
+La aplicación utiliza un backend de Node.js para obtener los datos directamente desde la fuente oficial de Wikimedia Analytics. El frontend, construido con Vue.js 3, consume estos datos y los presenta en una interfaz limpia e intuitiva, permitiendo al usuario explorar la información a través de filtros avanzados, múltiples gráficos interactivos y comparativas detalladas.
 
 Arquitectura del Proyecto
 Backend (server.js): Un servidor Node.js con Express que actúa como un intermediario robusto. Se encarga de:
@@ -30,14 +30,19 @@ Gráfico de Líneas: Muestra la evolución mensual de los editores para identifi
 
 Gráfico de Barras: Resume el volumen total de editores por nivel de actividad.
 
+Herramienta de Comparación Avanzada: Un modal dedicado que permite a los usuarios seleccionar dos conjuntos de datos distintos (ej. comparar Chile vs. Argentina en un mes específico) y visualizar las diferencias en tablas y gráficos dedicados.
+
+Tutorial Interactivo Guiado: Una experiencia de bienvenida que guía a los nuevos usuarios a través de cada componente de la interfaz, asegurando una curva de aprendizaje mínima.
+
 Tabla de Resultados Paginada: Maneja grandes volúmenes de datos de manera eficiente.
 
 Exportación a CSV: Permite exportar los datos filtrados para análisis externo.
 
-Diseño Moderno y Responsivo: Creado con Tailwind CSS para una experiencia de usuario óptima en cualquier dispositivo.
+Diseño Moderno y Responsivo: Creado con Tailwind CSS, con un diseño de filtros completamente responsivo que garantiza una experiencia de usuario consistente en todos los dispositivos.
 
 Tecnologías Utilizadas
 Backend
+
 Entorno de Ejecución: Node.js
 
 Framework: Express.js
@@ -47,6 +52,7 @@ Peticiones HTTP: Axios
 Web Scraping: Cheerio (para parsear la lista de archivos del HTML de Wikimedia)
 
 Frontend
+
 Framework: Vue.js 3 (Composition API)
 
 Estilos: Tailwind CSS
@@ -66,7 +72,7 @@ Clona o descarga el repositorio en tu computadora.
 
 Abre una terminal en la carpeta raíz del proyecto.
 
-Instala las dependencias del servidor: Este comando leerá el archivo package.json e instalará Express, Axios, etc.
+Instala las dependencias del servidor:
 
 npm install
 
@@ -91,4 +97,4 @@ Estructura del Código
 
 server.js: Define las rutas de la API (/api/files, /api/file/:filename) que el frontend utiliza para obtener los datos. También sirve los archivos estáticos de la carpeta public.
 
-public/index.html: Contiene la aplicación Vue.js completa, dividida en componentes reutilizables (stats-panel, filters-panel, etc.) y toda la lógica de la interfaz de usuario.
+public/index.html: Contiene la aplicación Vue.js completa, dividida en componentes reutilizables (stats-panel, filters-panel, comparison-modal, etc.) y toda la lógica de la interfaz de usuario.
