@@ -1,3 +1,4 @@
+Este visualizador puedes visitarlo en: https://geo-editores.toolforge.org/
 Visualizador de Datos Geo-editores de Wikimedia
 Una aplicación web interactiva con una arquitectura cliente-servidor para cargar, visualizar, filtrar, comparar y analizar los datos públicos del directorio de análisis de geo-editores de Wikimedia.
 
@@ -96,5 +97,6 @@ Estructura del Código
 └── server.js             # El corazón del backend (servidor Express y lógica de la API)
 
 server.js: Define las rutas de la API (/api/files, /api/file/:filename) que el frontend utiliza para obtener los datos. También sirve los archivos estáticos de la carpeta public.
+
 
 public/index.html: Contiene la aplicación Vue.js completa, dividida en componentes reutilizables (stats-panel, filters-panel, comparison-modal, etc.) y toda la lógica de la interfaz de usuario.
