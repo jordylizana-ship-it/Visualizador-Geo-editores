@@ -7,7 +7,8 @@ const path = require('path');
 
 // 2. Inicializar nuestro servidor
 const app = express();
-const PORT = 3000; // El "puerto" donde vivirá nuestra app
+const PORT = process.env.PORT || 3000; // Toolforge usa process.env.PORT
+
 
 // 3. Configurar el servidor
 app.use(cors()); // Habilitar CORS
