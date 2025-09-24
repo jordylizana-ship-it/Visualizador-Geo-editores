@@ -7,7 +7,7 @@ const path = require('path');
 
 // 2. Inicializar nuestro servidor
 const app = express();
-const PORT = process.env.PORT || 3000; // Toolforge usa process.env.PORT
+const PORT = process.env.PORT || 8000; // Toolforge usa process.env.PORT
 
 
 // 3. Configurar el servidor
